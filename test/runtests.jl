@@ -1,7 +1,7 @@
 using Test
 using FigCLIGen
 
-function runtests()
+function rungen()
     mktempdir() do tmpdir
         for file in readdir(joinpath(@__DIR__, "specs"))
             if endswith(file, ".json")
@@ -19,6 +19,26 @@ function runtests()
     end
 end
 
+function test_grep()
+    mktempdir() do tmpdir
+        specfile = joinpath(@__DIR__, "specs", "grep.json")
+        outputfile = joinpath(tmpdir, "grep.jl")
+        FigCLIGen.generate(specfile, outputfile)
+        @test isfile(outputfile)
+
+        cp(joinpath(@__DIR__, "greptest.jl"), joinpath(tmpdir, "greptest.jl"))
+        cd(tmpdir) do
+            proc = run(`julia greptest.jl`)
+            @test proc.exitcode == 0
+        end
+    end
+end
+
 @testset "FigCLIGen" begin
-    runtests()
+    rungen()
+
+    # run test_grep only on Linux
+    if Sys.islinux()
+        test_grep()
+    end
 end

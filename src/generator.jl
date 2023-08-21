@@ -129,15 +129,24 @@ function gen_command(io::IO, spec::Dict{String,Any}; parent::Union{Nothing,Strin
                     "\"$(default)\""
                 end
             end
-            docstring *= "    $(julia_optname)::$(opttype) - $(option["description"])\n"
+            docstring *= "- $(julia_optname)::$(opttype) - $(option["description"])\n"
             kwargs_str *= "$(julia_optname)::Union{Nothing,$(opttype)} = $(opt_default), "
             push!(kwargs, (optname, julia_optname, isbool))
         end
     end
 
     println(io, """\"\"\" $(docstring) \"\"\"
-    function $(name)(parent::Cmd$(kwargs_str))
-        cmd = parent""")
+    function $(name)(parent::Cmd$(kwargs_str))""")
+    if isnothing(parent)
+        println(io, """
+            cmd = $(name)()
+        """)
+    else
+        println(io, """
+            parentcmd = $(parent)()
+            cmd = `\$(parentcmd) $(name)`
+        """)
+    end
     for (optname, julia_optname, isbool) in kwargs
         if isbool
             println(io, """
@@ -148,7 +157,7 @@ function gen_command(io::IO, spec::Dict{String,Any}; parent::Union{Nothing,Strin
         else
             println(io, """
                 if !isnothing($(julia_optname))
-                    cmd = `\$(cmd) $(optname)=$(julia_optname)`
+                    cmd = `\$(cmd) $(optname)=\$($julia_optname)`
                 end
             """)
         end
