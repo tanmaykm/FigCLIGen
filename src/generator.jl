@@ -21,7 +21,7 @@ function default_base_command(spec::Dict{String,Any})
     """
 end
 
-function wrap_module(f, io::IO, spec::Dict{String,Any}; custom_include::AbstractString=nothing, ignore_base_command::Bool=false)
+function wrap_module(f, io::IO, spec::Dict{String,Any}; custom_include::Union{Nothing,AbstractString}=nothing, ignore_base_command::Bool=false)
     println(io, """
     \"\"\"
     CLI for $(spec["name"]).
@@ -47,6 +47,8 @@ function wrap_module(f, io::IO, spec::Dict{String,Any}; custom_include::Abstract
     println(io, """
     end # module CLI
     """)
+
+    return nothing
 end
 
 function strip_leading_dashes(s::AbstractString)
@@ -157,6 +159,15 @@ function gen_command(io::IO, spec::Dict{String,Any}; parent::Union{Nothing,Strin
     """)
 end
 
+function generate_internals(io, spec)
+    gen_command(io, spec)
+
+    subcommands = get(spec, "subcommands", Dict{String,Any}())
+    for subcommand in subcommands
+        gen_command(io, subcommand; parent=spec["name"])
+    end
+end
+
 """
 Generate a Julia module for a CLI based on a specification file.
 
@@ -184,12 +195,6 @@ function generate(spec::Dict{String,Any}, outputfile::AbstractString; kwargs...)
 end
 
 function generate(spec::Dict{String,Any}, io::IO; kwargs...)
-    wrap_module(io, spec; kwargs...) do io, spec
-        gen_command(io, spec)
-
-        subcommands = get(spec, "subcommands", Dict{String,Any}())
-        for subcommand in subcommands
-            gen_command(io, subcommand; parent=spec["name"])
-        end
-    end
+    wrap_module(generate_internals, io, spec; kwargs...)
+    return nothing
 end
