@@ -9,11 +9,26 @@ module CLI
 
 
 """
-The base CLI command.
-Matches patterns in input text. Supports simple patterns and regular expressions
+CommandLine execution context.
+
+`exec`: a no argument function that provides the base command to execute in a julia `do` block.
+`cmdopts`: keyword arguments that should be used to further customize the `Cmd` creation
+`pipelineopts`: keyword arguments that should be used to further customize the `pipeline` creation
 """
-function grep()
-    return `grep`
+struct CommandLine
+    exec::Base.Function
+    cmdopts::Base.Dict{Base.Symbol,Base.Any}
+    pipelineopts::Base.Dict{Base.Symbol,Base.Any}
+end
+
+"""
+The default CommandLine constructor for Matches patterns in input text. Supports simple patterns and regular expressions
+"""
+function CommandLine()
+    fn = f -> f("grep")
+    cmdopts = Base.Dict{Base.Symbol,Base.Any}()    
+    pipelineopts = Base.Dict{Base.Symbol,Base.Any}()    
+    return CommandLine(fn, cmdopts, pipelineopts)
 end
 
 """ grep
@@ -66,186 +81,56 @@ Options:
 - perl_regexp::Bool - Interpret pattern as a Perl regular expression
 - file::AbstractString - Obtain patterns from FILE, one per line. The empty file contains zero patterns, and therefore matches nothing. (-f is specified by POSIX.)
  """
-function grep(parent::Cmd; help::Union{Nothing,Bool} = false, extended_regexp::Union{Nothing,Bool} = false, fixed_string::Union{Nothing,Bool} = false, basic_regexp::Union{Nothing,Bool} = false, regexp::Union{Nothing,AbstractString} = nothing, ignore_case::Union{Nothing,Bool} = false, invert_match::Union{Nothing,Bool} = false, word_regexp::Union{Nothing,Bool} = false, line_regexp::Union{Nothing,Bool} = false, count::Union{Nothing,Bool} = false, color::Union{Nothing,AbstractString} = "auto", files_without_match::Union{Nothing,Bool} = false, files_with_matches::Union{Nothing,Bool} = false, max_count::Union{Nothing,AbstractString} = nothing, only_matching::Union{Nothing,Bool} = false, quiet::Union{Nothing,Bool} = false, no_messages::Union{Nothing,Bool} = false, byte_offset::Union{Nothing,Bool} = false, with_filename::Union{Nothing,Bool} = false, no_filename::Union{Nothing,Bool} = false, label::Union{Nothing,AbstractString} = nothing, line_number::Union{Nothing,Bool} = false, initial_tab::Union{Nothing,Bool} = false, unix_byte_offsets::Union{Nothing,Bool} = false, null::Union{Nothing,Bool} = false, after_context::Union{Nothing,AbstractString} = nothing, before_context::Union{Nothing,AbstractString} = nothing, context::Union{Nothing,AbstractString} = nothing, text::Union{Nothing,Bool} = false, binary_files::Union{Nothing,AbstractString} = "binary", devices::Union{Nothing,AbstractString} = "read", directories::Union{Nothing,AbstractString} = "read", exclude::Union{Nothing,AbstractString} = nothing, exclude_dir::Union{Nothing,AbstractString} = nothing, I::Union{Nothing,Bool} = false, include::Union{Nothing,AbstractString} = nothing, include_dir::Union{Nothing,AbstractString} = nothing, recursive::Union{Nothing,Bool} = false, line_buffered::Union{Nothing,Bool} = false, binary::Union{Nothing,Bool} = false, J::Union{Nothing,Bool} = false, version::Union{Nothing,Bool} = false, perl_regexp::Union{Nothing,Bool} = false, file::Union{Nothing,AbstractString} = nothing, )
-    cmd = grep()
-
-    if !isnothing(help) && help
-        cmd = `$(cmd) --help`
+function grep(ctx::CommandLine, _args...; help::Union{Nothing,Bool} = false, extended_regexp::Union{Nothing,Bool} = false, fixed_string::Union{Nothing,Bool} = false, basic_regexp::Union{Nothing,Bool} = false, regexp::Union{Nothing,AbstractString} = nothing, ignore_case::Union{Nothing,Bool} = false, invert_match::Union{Nothing,Bool} = false, word_regexp::Union{Nothing,Bool} = false, line_regexp::Union{Nothing,Bool} = false, count::Union{Nothing,Bool} = false, color::Union{Nothing,AbstractString} = "auto", files_without_match::Union{Nothing,Bool} = false, files_with_matches::Union{Nothing,Bool} = false, max_count::Union{Nothing,AbstractString} = nothing, only_matching::Union{Nothing,Bool} = false, quiet::Union{Nothing,Bool} = false, no_messages::Union{Nothing,Bool} = false, byte_offset::Union{Nothing,Bool} = false, with_filename::Union{Nothing,Bool} = false, no_filename::Union{Nothing,Bool} = false, label::Union{Nothing,AbstractString} = nothing, line_number::Union{Nothing,Bool} = false, initial_tab::Union{Nothing,Bool} = false, unix_byte_offsets::Union{Nothing,Bool} = false, null::Union{Nothing,Bool} = false, after_context::Union{Nothing,AbstractString} = nothing, before_context::Union{Nothing,AbstractString} = nothing, context::Union{Nothing,AbstractString} = nothing, text::Union{Nothing,Bool} = false, binary_files::Union{Nothing,AbstractString} = "binary", devices::Union{Nothing,AbstractString} = "read", directories::Union{Nothing,AbstractString} = "read", exclude::Union{Nothing,AbstractString} = nothing, exclude_dir::Union{Nothing,AbstractString} = nothing, I::Union{Nothing,Bool} = false, include::Union{Nothing,AbstractString} = nothing, include_dir::Union{Nothing,AbstractString} = nothing, recursive::Union{Nothing,Bool} = false, line_buffered::Union{Nothing,Bool} = false, binary::Union{Nothing,Bool} = false, J::Union{Nothing,Bool} = false, version::Union{Nothing,Bool} = false, perl_regexp::Union{Nothing,Bool} = false, file::Union{Nothing,AbstractString} = nothing, )
+    ctx.exec() do cmdstr
+        cmd = [cmdstr]
+        !Base.isnothing(help) && help && Base.push!(cmd, "--help")
+        !Base.isnothing(extended_regexp) && extended_regexp && Base.push!(cmd, "--extended-regexp")
+        !Base.isnothing(fixed_string) && fixed_string && Base.push!(cmd, "--fixed-string")
+        !Base.isnothing(basic_regexp) && basic_regexp && Base.push!(cmd, "--basic-regexp")
+        Base.isnothing(regexp) || Base.push!(cmd, "--regexp=$(regexp)")
+        !Base.isnothing(ignore_case) && ignore_case && Base.push!(cmd, "--ignore-case")
+        !Base.isnothing(invert_match) && invert_match && Base.push!(cmd, "--invert-match")
+        !Base.isnothing(word_regexp) && word_regexp && Base.push!(cmd, "--word-regexp")
+        !Base.isnothing(line_regexp) && line_regexp && Base.push!(cmd, "--line-regexp")
+        !Base.isnothing(count) && count && Base.push!(cmd, "--count")
+        Base.isnothing(color) || Base.push!(cmd, "--color=$(color)")
+        !Base.isnothing(files_without_match) && files_without_match && Base.push!(cmd, "--files-without-match")
+        !Base.isnothing(files_with_matches) && files_with_matches && Base.push!(cmd, "--files-with-matches")
+        Base.isnothing(max_count) || Base.push!(cmd, "--max-count=$(max_count)")
+        !Base.isnothing(only_matching) && only_matching && Base.push!(cmd, "--only-matching")
+        !Base.isnothing(quiet) && quiet && Base.push!(cmd, "--quiet")
+        !Base.isnothing(no_messages) && no_messages && Base.push!(cmd, "--no-messages")
+        !Base.isnothing(byte_offset) && byte_offset && Base.push!(cmd, "--byte-offset")
+        !Base.isnothing(with_filename) && with_filename && Base.push!(cmd, "--with-filename")
+        !Base.isnothing(no_filename) && no_filename && Base.push!(cmd, "--no-filename")
+        Base.isnothing(label) || Base.push!(cmd, "--label=$(label)")
+        !Base.isnothing(line_number) && line_number && Base.push!(cmd, "--line-number")
+        !Base.isnothing(initial_tab) && initial_tab && Base.push!(cmd, "--initial-tab")
+        !Base.isnothing(unix_byte_offsets) && unix_byte_offsets && Base.push!(cmd, "--unix-byte-offsets")
+        !Base.isnothing(null) && null && Base.push!(cmd, "--null")
+        Base.isnothing(after_context) || Base.push!(cmd, "--after-context=$(after_context)")
+        Base.isnothing(before_context) || Base.push!(cmd, "--before-context=$(before_context)")
+        Base.isnothing(context) || Base.push!(cmd, "--context=$(context)")
+        !Base.isnothing(text) && text && Base.push!(cmd, "--text")
+        Base.isnothing(binary_files) || Base.push!(cmd, "--binary-files=$(binary_files)")
+        Base.isnothing(devices) || Base.push!(cmd, "--devices=$(devices)")
+        Base.isnothing(directories) || Base.push!(cmd, "--directories=$(directories)")
+        Base.isnothing(exclude) || Base.push!(cmd, "--exclude=$(exclude)")
+        Base.isnothing(exclude_dir) || Base.push!(cmd, "--exclude-dir=$(exclude_dir)")
+        !Base.isnothing(I) && I && Base.push!(cmd, "-I")
+        Base.isnothing(include) || Base.push!(cmd, "--include=$(include)")
+        Base.isnothing(include_dir) || Base.push!(cmd, "--include-dir=$(include_dir)")
+        !Base.isnothing(recursive) && recursive && Base.push!(cmd, "--recursive")
+        !Base.isnothing(line_buffered) && line_buffered && Base.push!(cmd, "--line-buffered")
+        !Base.isnothing(binary) && binary && Base.push!(cmd, "--binary")
+        !Base.isnothing(J) && J && Base.push!(cmd, "-J")
+        !Base.isnothing(version) && version && Base.push!(cmd, "--version")
+        !Base.isnothing(perl_regexp) && perl_regexp && Base.push!(cmd, "--perl-regexp")
+        Base.isnothing(file) || Base.push!(cmd, "--file=$(file)")
+        Base.append!(cmd, Base.string.(_args))
+        Base.run(Base.pipeline(Base.Cmd(cmd; ctx.cmdopts...); ctx.pipelineopts...))
     end
-
-    if !isnothing(extended_regexp) && extended_regexp
-        cmd = `$(cmd) --extended-regexp`
-    end
-
-    if !isnothing(fixed_string) && fixed_string
-        cmd = `$(cmd) --fixed-string`
-    end
-
-    if !isnothing(basic_regexp) && basic_regexp
-        cmd = `$(cmd) --basic-regexp`
-    end
-
-    if !isnothing(regexp)
-        cmd = `$(cmd) --regexp=$(regexp)`
-    end
-
-    if !isnothing(ignore_case) && ignore_case
-        cmd = `$(cmd) --ignore-case`
-    end
-
-    if !isnothing(invert_match) && invert_match
-        cmd = `$(cmd) --invert-match`
-    end
-
-    if !isnothing(word_regexp) && word_regexp
-        cmd = `$(cmd) --word-regexp`
-    end
-
-    if !isnothing(line_regexp) && line_regexp
-        cmd = `$(cmd) --line-regexp`
-    end
-
-    if !isnothing(count) && count
-        cmd = `$(cmd) --count`
-    end
-
-    if !isnothing(color)
-        cmd = `$(cmd) --color=$(color)`
-    end
-
-    if !isnothing(files_without_match) && files_without_match
-        cmd = `$(cmd) --files-without-match`
-    end
-
-    if !isnothing(files_with_matches) && files_with_matches
-        cmd = `$(cmd) --files-with-matches`
-    end
-
-    if !isnothing(max_count)
-        cmd = `$(cmd) --max-count=$(max_count)`
-    end
-
-    if !isnothing(only_matching) && only_matching
-        cmd = `$(cmd) --only-matching`
-    end
-
-    if !isnothing(quiet) && quiet
-        cmd = `$(cmd) --quiet`
-    end
-
-    if !isnothing(no_messages) && no_messages
-        cmd = `$(cmd) --no-messages`
-    end
-
-    if !isnothing(byte_offset) && byte_offset
-        cmd = `$(cmd) --byte-offset`
-    end
-
-    if !isnothing(with_filename) && with_filename
-        cmd = `$(cmd) --with-filename`
-    end
-
-    if !isnothing(no_filename) && no_filename
-        cmd = `$(cmd) --no-filename`
-    end
-
-    if !isnothing(label)
-        cmd = `$(cmd) --label=$(label)`
-    end
-
-    if !isnothing(line_number) && line_number
-        cmd = `$(cmd) --line-number`
-    end
-
-    if !isnothing(initial_tab) && initial_tab
-        cmd = `$(cmd) --initial-tab`
-    end
-
-    if !isnothing(unix_byte_offsets) && unix_byte_offsets
-        cmd = `$(cmd) --unix-byte-offsets`
-    end
-
-    if !isnothing(null) && null
-        cmd = `$(cmd) --null`
-    end
-
-    if !isnothing(after_context)
-        cmd = `$(cmd) --after-context=$(after_context)`
-    end
-
-    if !isnothing(before_context)
-        cmd = `$(cmd) --before-context=$(before_context)`
-    end
-
-    if !isnothing(context)
-        cmd = `$(cmd) --context=$(context)`
-    end
-
-    if !isnothing(text) && text
-        cmd = `$(cmd) --text`
-    end
-
-    if !isnothing(binary_files)
-        cmd = `$(cmd) --binary-files=$(binary_files)`
-    end
-
-    if !isnothing(devices)
-        cmd = `$(cmd) --devices=$(devices)`
-    end
-
-    if !isnothing(directories)
-        cmd = `$(cmd) --directories=$(directories)`
-    end
-
-    if !isnothing(exclude)
-        cmd = `$(cmd) --exclude=$(exclude)`
-    end
-
-    if !isnothing(exclude_dir)
-        cmd = `$(cmd) --exclude-dir=$(exclude_dir)`
-    end
-
-    if !isnothing(I) && I
-        cmd = `$(cmd) -I`
-    end
-
-    if !isnothing(include)
-        cmd = `$(cmd) --include=$(include)`
-    end
-
-    if !isnothing(include_dir)
-        cmd = `$(cmd) --include-dir=$(include_dir)`
-    end
-
-    if !isnothing(recursive) && recursive
-        cmd = `$(cmd) --recursive`
-    end
-
-    if !isnothing(line_buffered) && line_buffered
-        cmd = `$(cmd) --line-buffered`
-    end
-
-    if !isnothing(binary) && binary
-        cmd = `$(cmd) --binary`
-    end
-
-    if !isnothing(J) && J
-        cmd = `$(cmd) -J`
-    end
-
-    if !isnothing(version) && version
-        cmd = `$(cmd) --version`
-    end
-
-    if !isnothing(perl_regexp) && perl_regexp
-        cmd = `$(cmd) --perl-regexp`
-    end
-
-    if !isnothing(file)
-        cmd = `$(cmd) --file=$(file)`
-    end
-
-    return cmd
 end
 
 end # module CLI

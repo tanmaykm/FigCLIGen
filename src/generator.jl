@@ -12,11 +12,26 @@ const RESERVED_WORDS = [
 function default_base_command(spec::Dict{String,Any})
     return """
     \"\"\"
-    The base CLI command.
-    $(spec["description"])
+    CommandLine execution context.
+
+    `exec`: a no argument function that provides the base command to execute in a julia `do` block.
+    `cmdopts`: keyword arguments that should be used to further customize the `Cmd` creation
+    `pipelineopts`: keyword arguments that should be used to further customize the `pipeline` creation
     \"\"\"
-    function $(spec["name"])()
-        return `$(spec["name"])`
+    struct CommandLine
+        exec::Base.Function
+        cmdopts::Base.Dict{Base.Symbol,Base.Any}
+        pipelineopts::Base.Dict{Base.Symbol,Base.Any}
+    end
+
+    \"\"\"
+    The default CommandLine constructor for $(spec["description"])
+    \"\"\"
+    function CommandLine()
+        fn = f -> f(\"$(spec["name"])\")
+        cmdopts = Base.Dict{Base.Symbol,Base.Any}()    
+        pipelineopts = Base.Dict{Base.Symbol,Base.Any}()    
+        return CommandLine(fn, cmdopts, pipelineopts)
     end
     """
 end
@@ -136,34 +151,26 @@ function gen_command(io::IO, spec::Dict{String,Any}; parent::Union{Nothing,Strin
     end
 
     println(io, """\"\"\" $(docstring) \"\"\"
-    function $(name)(parent::Cmd$(kwargs_str))""")
+    function $(name)(ctx::CommandLine, _args...$(kwargs_str))
+        ctx.exec() do cmdstr""")
+
     if isnothing(parent)
-        println(io, """
-            cmd = $(name)()
-        """)
+        println(io, """        cmd = [cmdstr]""")
     else
-        println(io, """
-            parentcmd = $(parent)()
-            cmd = `\$(parentcmd) $(name)`
-        """)
+        println(io, """        cmd = [cmdstr, \"$(name)\"]""")
     end
+
     for (optname, julia_optname, isbool) in kwargs
         if isbool
-            println(io, """
-                if !isnothing($(julia_optname)) && $(julia_optname)
-                    cmd = `\$(cmd) $(optname)`
-                end
-            """)
+            println(io, """        !Base.isnothing($(julia_optname)) && $(julia_optname) && Base.push!(cmd, \"$(optname)\")""")
         else
-            println(io, """
-                if !isnothing($(julia_optname))
-                    cmd = `\$(cmd) $(optname)=\$($julia_optname)`
-                end
-            """)
+            println(io, """        Base.isnothing($(julia_optname)) || Base.push!(cmd, \"$(optname)=\$($julia_optname)\")""")
         end
     end
     println(io, """
-        return cmd
+            Base.append!(cmd, Base.string.(_args))
+            Base.run(Base.pipeline(Base.Cmd(cmd; ctx.cmdopts...); ctx.pipelineopts...))
+        end
     end
     """)
 end
