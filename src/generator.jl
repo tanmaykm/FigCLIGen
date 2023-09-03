@@ -201,12 +201,12 @@ Keyword arguments:
 
 function generate(specfile::AbstractString, outputfile::AbstractString; kwargs...)
     spec = JSON.parsefile(specfile)
-    generate(spec, outputfile)
+    generate(spec, outputfile; kwargs...)
 end
 
 function generate(spec::Dict{String,Any}, outputfile::AbstractString; kwargs...)
     open(outputfile, "w") do io
-        generate(spec::Dict{String,Any}, io)
+        generate(spec::Dict{String,Any}, io; kwargs...)
     end
 end
 
