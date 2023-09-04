@@ -18,20 +18,11 @@ function default_base_command(spec::Dict{String,Any})
     `cmdopts`: keyword arguments that should be used to further customize the `Cmd` creation
     `pipelineopts`: keyword arguments that should be used to further customize the `pipeline` creation
     \"\"\"
-    struct CommandLine
-        exec::Base.Function
-        cmdopts::Base.Dict{Base.Symbol,Base.Any}
-        pipelineopts::Base.Dict{Base.Symbol,Base.Any}
-    end
-
-    \"\"\"
-    The default CommandLine constructor for $(spec["description"])
-    \"\"\"
-    function CommandLine()
-        fn = f -> f(\"$(spec["name"])\")
-        cmdopts = Base.Dict{Base.Symbol,Base.Any}()    
-        pipelineopts = Base.Dict{Base.Symbol,Base.Any}()    
-        return CommandLine(fn, cmdopts, pipelineopts)
+    Base.@kwdef struct CommandLine
+        exec::Base.Function = (f) -> f(\"$(spec["name"])\")
+        cmdopts::OptsType = OptsType()
+        pipelineopts::OptsType = OptsType()
+        runopts::OptsType = OptsType()
     end
     """
 end
@@ -47,6 +38,7 @@ function wrap_module(f, io::IO, spec::Dict{String,Any}; custom_include::Union{No
     \"\"\"
     module CLI
 
+    const OptsType = Base.Dict{Base.Symbol,Base.Any}
     """)
 
     if !isnothing(custom_include)
@@ -169,7 +161,7 @@ function gen_command(io::IO, spec::Dict{String,Any}; parent::Union{Nothing,Strin
     end
     println(io, """
             Base.append!(cmd, Base.string.(_args))
-            Base.run(Base.pipeline(Base.Cmd(cmd; ctx.cmdopts...); ctx.pipelineopts...))
+            Base.run(Base.pipeline(Base.Cmd(Cmd(cmd); ctx.cmdopts...); ctx.pipelineopts...); ctx.runopts...)
         end
     end
     """)

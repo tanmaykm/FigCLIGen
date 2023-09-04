@@ -7,6 +7,7 @@ Edit the specification file and run the generator instead.
 """
 module CLI
 
+const OptsType = Base.Dict{Base.Symbol,Base.Any}
 
 """
 CommandLine execution context.
@@ -15,20 +16,11 @@ CommandLine execution context.
 `cmdopts`: keyword arguments that should be used to further customize the `Cmd` creation
 `pipelineopts`: keyword arguments that should be used to further customize the `pipeline` creation
 """
-struct CommandLine
-    exec::Base.Function
-    cmdopts::Base.Dict{Base.Symbol,Base.Any}
-    pipelineopts::Base.Dict{Base.Symbol,Base.Any}
-end
-
-"""
-The default CommandLine constructor for Matches patterns in input text. Supports simple patterns and regular expressions
-"""
-function CommandLine()
-    fn = f -> f("grep")
-    cmdopts = Base.Dict{Base.Symbol,Base.Any}()    
-    pipelineopts = Base.Dict{Base.Symbol,Base.Any}()    
-    return CommandLine(fn, cmdopts, pipelineopts)
+Base.@kwdef struct CommandLine
+    exec::Base.Function = (f) -> f("grep")
+    cmdopts::OptsType = OptsType()
+    pipelineopts::OptsType = OptsType()
+    runopts::OptsType = OptsType()
 end
 
 """ grep
@@ -129,7 +121,7 @@ function grep(ctx::CommandLine, _args...; help::Union{Nothing,Bool} = false, ext
         !Base.isnothing(perl_regexp) && perl_regexp && Base.push!(cmd, "--perl-regexp")
         Base.isnothing(file) || Base.push!(cmd, "--file=$(file)")
         Base.append!(cmd, Base.string.(_args))
-        Base.run(Base.pipeline(Base.Cmd(cmd; ctx.cmdopts...); ctx.pipelineopts...))
+        Base.run(Base.pipeline(Base.Cmd(Cmd(cmd); ctx.cmdopts...); ctx.pipelineopts...); ctx.runopts...)
     end
 end
 
