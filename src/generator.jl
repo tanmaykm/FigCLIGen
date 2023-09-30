@@ -33,7 +33,7 @@ function wrap_module(f, io::IO, spec::Dict{String,Any}; custom_include::Union{No
     CLI for $(spec["name"]).
     $(spec["description"])
 
-    Generated via @__MODULE__. Do not edit directly.
+    Generated via $(@__MODULE__). Do not edit directly.
     Edit the specification file and run the generator instead.
     \"\"\"
     module CLI
