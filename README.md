@@ -1,4 +1,4 @@
-# FigCLIGen
+# FigCLIGen.jl
 
 [![Build Status](https://github.com/tanmaykm/FigCLIGen.jl/workflows/CI/badge.svg)](https://github.com/tanmaykm/FigCLIGen.jl/actions?query=workflow%3ACI+branch%3Amain)
 [![codecov.io](http://codecov.io/github/tanmaykm/FigCLIGen.jl/coverage.svg?branch=main)](http://codecov.io/github/tanmaykm/FigCLIGen.jl?branch=main)
